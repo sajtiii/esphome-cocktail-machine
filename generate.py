@@ -8,11 +8,7 @@ ENCODER_CLK_PIN = "GPIO14"
 SW_PIN = "GPIO34"
 PUMPS = [
     {
-        "pin": "GPIO16",
-        "flowrate": 10,
-    },
-    {
-        "pin": "GPIO17",
+        "pin": "GPIO19",
         "flowrate": 10,
     },
     {
@@ -20,23 +16,19 @@ PUMPS = [
         "flowrate": 10,
     },
     {
-        "pin": "GPIO19",
+        "pin": "GPIO17",
         "flowrate": 10,
     },
     {
-        "pin": "GPIO25",
-        "flowrate": 10,
-    },
-    {
-        "pin": "GPIO26",
-        "flowrate": 10,
-    },
-    {
-        "pin": "GPIO27",
+        "pin": "GPIO16",
         "flowrate": 10,
     },
     {
         "pin": "GPIO13",
+        "flowrate": 10,
+    },
+    {
+        "pin": "GPIO27",
         "flowrate": 10,
     },
     {
@@ -45,6 +37,14 @@ PUMPS = [
     },
     {
         "pin": "GPIO33",
+        "flowrate": 10,
+    },
+    {
+        "pin": "GPIO25",
+        "flowrate": 10,
+    },
+    {
+        "pin": "GPIO26",
         "flowrate": 10,
     },
 ]
