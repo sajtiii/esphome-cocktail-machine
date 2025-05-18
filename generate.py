@@ -49,6 +49,12 @@ PUMPS = [
     },
 ]
 COCKTAILS = {
+    "Vodka Soda": {
+        "ingredients": {
+            "vodka": 40,
+            "soda": 400,
+        }
+    },
     "Mojito": {
         "ingredients": {
             "white rum": 40,
@@ -100,10 +106,32 @@ config = {
     "esp32": {
         "board": "esp32dev",
         "framework": {
-            "type": "arduino",
+            "type": "esp-idf",
+            # "type": "arduino",
         },
     },
     "logger": {},
+    "wifi": {
+        "ssid": "!secret wifi_ssid",
+        "password": "!secret wifi_password",
+        "fast_connect": True,
+        "manual_ip": {
+            "static_ip": "192.168.5.127",
+            "gateway": "192.168.5.1",
+            "subnet": "255.255.255.0",
+        },
+    },
+    "api": {
+        "encryption": {
+            "key": "!secret api_encryption_key",
+        },
+    },
+    "ota": [
+        {
+            "platform": "esphome",
+            "password": "!secret ota_password",
+        },
+    ],
     "json": {},
     "globals": [
         {
@@ -130,45 +158,50 @@ config = {
     "pn532_i2c": {
         "id": "card_reader",
         "update_interval": "1s",
-        "on_tag": {
-            "then": [
-                {
-                    "lambda": 
-                        "if (!tag.has_ndef_message()) return;"
-                        "auto message = tag.get_ndef_message();"
-                        "auto records = message->get_records();"
-                        "for (auto &record : records) {"
-                            "std::string payload = record->get_payload();"
-                            "size_t pos = payload.find(\"coctail:\");"
-                            "if (pos != std::string::npos) {"
-                                "ESP_LOGD(\"card_reader\", \"Found cocktail: %s\", payload.c_str());"
-                                "json::parse_json(payload.substr(pos + 8), [](JsonObject root) -> bool {"
-                                    "std::string name = root[\"name\"].as<std::string>();"
-                                    "JsonArray ingredients = root[\"ingredients\"].as<JsonArray>();"
-                                    "if (ingredients.size() == 0) {"
-                                        "id(error)->execute(\"Invalid tag!\");"
-                                        "return false;"
-                                    "}"
-                                    "id(clear_ingredients)->execute();" +
-                                    "".join([
-                                        "if (ingredients[" + str(i) + "] && ingredients[" + str(i) + "][\"name\"] && ingredients[" + str(i) + "][\"amount\"]) {"
-                                            "std::string name = ingredients[" + str(i) + "][\"name\"].as<std::string>();"
-                                            "int amount = ingredients[" + str(i) + "][\"amount\"].as<int>();"
-                                            "if (!name.empty() && amount > 0) {"
-                                                "id(ingredient_" + str(i) + "_name).state = name;"
-                                                "id(ingredient_" + str(i) + "_name).state = amount;"
-                                            "}"
-                                        "}" 
-                                        for i in range(nbrOfPumps)
-                                    ]) +
-                                    "id(make_cocktail)->execute();" +
-                                "});"
-                                "return;"
-                            "}"
-                        "}",
-                },
-            ],
-        },
+        # "on_tag": {
+        #     "then": [
+        #         {
+        #             "lambda": 
+        #                 "if (tag.has_ndef_message() && !id(make_cocktail).is_running() && id(write_card).is_running() && id(error).is_running()) {"
+        #                     "auto message = tag.get_ndef_message();"
+        #                     "auto records = message->get_records();"
+        #                     "for (auto &record : records) {"
+        #                         "std::string payload = record->get_payload();"
+        #                         "size_t pos = payload.find(\"cocktail:\");"
+        #                         "if (pos != std::string::npos) {"
+        #                             "ESP_LOGD(\"card_reader\", \"Found cocktail: %s\", payload.substr(pos + 9).c_str());"
+        #                             "json::parse_json(payload.substr(pos + 9), [](JsonObject root) -> bool {"
+        #                                 "std::string name = root[\"name\"].as<std::string>();"
+        #                                 "JsonArray ingredients = root[\"ingredients\"].as<JsonArray>();"
+        #                                 "if (ingredients.size() == 0) {"
+        #                                     "id(error)->execute(\"Invalid tag!\");"
+        #                                 "} else {"
+        #                                     "ESP_LOGD(\"card_reader\", \"Found cocktail: %s\", name.c_str());"
+        #                                     "id(clear_ingredients)->execute();"
+        #                                     "name.clear();"
+        #                                     "int amount;" +
+        #                                     "".join([
+        #                                         "if (ingredients[" + str(i) + "] && ingredients[" + str(i) + "][\"name\"] && ingredients[" + str(i) + "][\"amount\"]) {"
+        #                                             "name = ingredients[" + str(i) + "][\"name\"].as<std::string>();"
+        #                                             "amount = ingredients[" + str(i) + "][\"amount\"].as<int>();"
+        #                                             "ESP_LOGD(\"card_reader\", \"Ingredient #" + str(i) + ": name=%s; amount=%i\", name.c_str(), amount);"
+        #                                             "if (!name.empty() && amount > 0) {"
+        #                                                 "id(ingredient_" + str(i) + "_name).state = name;"
+        #                                                 "id(ingredient_" + str(i) + "_amount).state = amount;"
+        #                                             "}"
+        #                                         "}" 
+        #                                         for i in range(nbrOfPumps)
+        #                                     ]) +
+        #                                     "id(make_cocktail)->execute();"
+        #                                 "}"
+        #                             "});"
+        #                         "}"
+        #                     "}"
+        #                 "}"
+        #                 "return 0;",
+        #         },
+        #     ],
+        # },
     },
     "display": [
         {
@@ -195,7 +228,7 @@ config = {
                 "id(main_menu).draw();"
                 "if (id(main_menu).is_active()) return;"
 
-                "if (!id(error_message).empty()) { "
+                "if (id(error).is_running()) { "
                     "it.print(0, 0, \"---==[ Error! ]==---\"); "
                     "it.print(0, 1, id(error_message).c_str()); "
                     "return;"
@@ -263,6 +296,13 @@ config = {
             "id": "make_cocktail",
             "mode": "single",
             "then": [
+                {
+                    "logger.log": {
+                        "level": "DEBUG",
+                        "tag": "COCKTAIL",
+                        "format": "Started making...",
+                    },
+                },
                 {
                     "display_menu.hide": {
                         "id": "main_menu",
@@ -538,7 +578,7 @@ config = {
             "id": "ingredient_" + str(i) + "_amount",
             "optimistic": True,
             "min_value": 0,
-            "max_value": 100,
+            "max_value": 500,
             "step": 1,
             "initial_value": 0,
             "restore_value": False,
@@ -789,5 +829,6 @@ config = {
 contents = yaml.safe_dump(config, default_flow_style=False, sort_keys=False, width=float("inf"))
 
 contents = re.sub(r"\'\!lambda\s(.*)\'", r'!lambda \1', contents)
+contents = re.sub(r"\'\!secret\s(.*)\'", r'!secret \1', contents)
 
 print(contents)
